@@ -4,16 +4,23 @@
 
 #include <stdio.h>
 
-cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size);
+// TODO: args
+cudaError_t rectifyWithCuda(int *c, const int *a, const int *b, unsigned int size);
 
-__global__ void addKernel(int *c, const int *a, const int *b)
+// TODO: args
+__global__ void rectifyKernel(int *c, const int *a, const int *b)
 {
+    /*
     int i = threadIdx.x;
     c[i] = a[i] + b[i];
+    */
+
+    // TODO
 }
 
 int main()
 {
+    /*
     const int arraySize = 5;
     const int a[arraySize] = { 1, 2, 3, 4, 5 };
     const int b[arraySize] = { 10, 20, 30, 40, 50 };
@@ -36,12 +43,16 @@ int main()
         fprintf(stderr, "cudaDeviceReset failed!");
         return 1;
     }
+    */
+
+    // TODO
 
     return 0;
 }
 
-// Helper function for using CUDA to add vectors in parallel.
-cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size)
+// TODO: args
+// Helper function for using CUDA to rectify an image in parallel.
+cudaError_t rectifyWithCuda(int *c, const int *a, const int *b, unsigned int size)
 {
     int *dev_a = 0;
     int *dev_b = 0;
@@ -87,8 +98,9 @@ cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size)
         goto Error;
     }
 
+    // TODO: args
     // Launch a kernel on the GPU with one thread for each element.
-    addKernel<<<1, size>>>(dev_c, dev_a, dev_b);
+    rectifyKernel<<<1, size>>>(dev_c, dev_a, dev_b);
 
     // Check for any errors launching the kernel
     cudaStatus = cudaGetLastError();
