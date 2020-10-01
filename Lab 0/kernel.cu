@@ -4,18 +4,18 @@
 
 #include <stdio.h>
 
-// TODO: args
-cudaError_t rectifyWithCuda(int *c, const int *a, const int *b, unsigned int size);
+cudaError_t rectifyWithCuda(unsigned char* og_img, unsigned char* new_img, unsigned int num_thread, unsigned int size);
 
-// TODO: args
-__global__ void rectifyKernel(int *c, const int *a, const int *b)
+__global__ void rectifyKernel(unsigned char* og_img, unsigned char* new_img, unsigned int num_thread, unsigned int size)
 {
-    /*
-    int i = threadIdx.x;
-    c[i] = a[i] + b[i];
-    */
-
-    // TODO
+    for (int i = threadIdx.x; i < size; i += num_thread) {
+        if (og_img[i] < 127) {
+            new_img[i] = 127;
+        }
+        else {
+            new_img[i] = og_img[i];
+        }
+    }
 }
 
 int main()
