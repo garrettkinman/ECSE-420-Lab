@@ -8,6 +8,7 @@ cudaError_t rectifyWithCuda(unsigned char* og_img, unsigned char* new_img, unsig
 
 __global__ void rectifyKernel(unsigned char* og_img, unsigned char* new_img, unsigned int num_thread, unsigned int size)
 {
+    // iterate through all the blocks, same threadIdx for each
     for (int i = threadIdx.x; i < size; i += num_thread) {
         if (og_img[i] < 127) {
             new_img[i] = 127;
