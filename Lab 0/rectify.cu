@@ -18,7 +18,7 @@ __global__ void rectifyParallel(unsigned char* og_img, unsigned char* new_img, u
 
 void rectifySequential(unsigned char* og_img, unsigned char* new_img, unsigned int num_thread, unsigned int size) {
     // iterate through all elements of og_img
-    for (int i = 0; i < sizeof(og_img) / sizeof(og_img[0]); i++) {
+    for (int i = 0; i < size; i++) {
         if (og_img[i] < 127) {
             new_img[i] = 127;
         }
