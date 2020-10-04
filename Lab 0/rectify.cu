@@ -61,6 +61,19 @@ int main(int argc, char *argv[]) {
     // step 2: read in input image from file
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    unsigned char* image_buffer;
+    unsigned int width_in, height_in;
+    unsigned int total_pixels, pixels_per_thread;
+    signed leftover_pixels;
+
+    int error = lodepng_decode32_file(&image_buffer, &width_in, &height_in, input_filename);
+    if (error) {
+        printf("Error %u: %s\n", error, lodepng_error_text(error));
+        return -1;
+    }
+
+
+
     // TODO:
     // 1) read in and validate arguments
     // 2) load in input png from file
