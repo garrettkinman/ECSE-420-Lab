@@ -1,5 +1,6 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include "lodepng.h"
 
 #include <stdio.h>
 
@@ -29,6 +30,24 @@ void rectifySequential(unsigned char* og_img, unsigned char* new_img, unsigned i
 }
 
 int main(int argc, char *argv[]) {
+    
+    if (argc != 4) {
+        printf("Input arguments are of format:\n ./rectify <input filename> <output filename> <# threads>");
+        return 1;
+    }
+
+    int input_filename_len = strlen(argv[1]);
+    int output_filename_len = strlen(argv[2]);
+
+    // dynamically allocate strings of appropriate size to hold filenames
+    char *input_filename = (char*) malloc(input_filename_len * sizeof(char));
+    char *output_filename = (char*) malloc(output_filename_len * sizeof(char));
+
+    strcpy(input_filename, argv[1]);
+    strcpy(output_filename, argv[2]);
+
+    unsigned int num_threads = atoi(argv[3]);
+
     // TODO:
     // 1) read in and validate arguments
     // 2) load in input png from file
@@ -37,6 +56,10 @@ int main(int argc, char *argv[]) {
     // 5) call parallelized rectify function, record performance
     // 6) call sequential rectify function, record performance
     // 7) write output image from parallelized rectify function to file
+
+
+    free(input_filename);
+    free(output_filename);
 
     return 0;
 }
