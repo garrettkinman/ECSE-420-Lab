@@ -31,9 +31,13 @@ void rectifySequential(unsigned char* og_img, unsigned char* new_img, unsigned i
 
 int main(int argc, char *argv[]) {
     
+    // ~~~~~~~~~~~~~~~~~~~~~~~
+    // step 1: parse arguments
+    // ~~~~~~~~~~~~~~~~~~~~~~~
+
     if (argc != 4) {
-        printf("Input arguments are of format:\n ./rectify <input filename> <output filename> <# threads>");
-        return 1;
+        printf("Error: Input arguments are of format:\n./rectify <input filename> <output filename> <# threads>");
+        return -1;
     }
 
     int input_filename_len = strlen(argv[1]);
@@ -47,6 +51,15 @@ int main(int argc, char *argv[]) {
     strcpy(output_filename, argv[2]);
 
     unsigned int num_threads = atoi(argv[3]);
+
+    if (num_threads < 1) {
+        printf("Error: '%u' is an invalid number of threads.\nNumber of threads must be greater than zero.", num_threads);
+        return -1;
+    }
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // step 2: read in input image from file
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     // TODO:
     // 1) read in and validate arguments
