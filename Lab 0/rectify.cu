@@ -4,15 +4,15 @@
 
 #include <stdio.h>
 
-__global__ void rectifyParallel(unsigned char* og_img, unsigned char* new_img, unsigned int num_thread, unsigned int size)
+__global__ void rectifyParallel(unsigned char* original_img, unsigned char* new_img, unsigned int num_thread, unsigned int size)
 {
     // iterate through all the blocks, same threadIdx for each
     for (int i = threadIdx.x; i < size; i += num_thread) {
-        if (og_img[i] < 127) {
+        if (original_img[i] < 127) {
             new_img[i] = 127;
         }
         else {
-            new_img[i] = og_img[i];
+            new_img[i] = original_img[i];
         }
     }
 }
@@ -44,8 +44,8 @@ int main(int argc, char *argv[]) {
     int output_filename_len = strlen(argv[2]);
 
     // dynamically allocate strings of appropriate size to hold filenames
-    char *input_filename = (char*) malloc(input_filename_len * sizeof(char));
-    char *output_filename = (char*) malloc(output_filename_len * sizeof(char));
+    char *input_filename = (char*)malloc(input_filename_len * sizeof(char));
+    char *output_filename = (char*)malloc(output_filename_len * sizeof(char));
 
     strcpy(input_filename, argv[1]);
     strcpy(output_filename, argv[2]);
@@ -61,16 +61,32 @@ int main(int argc, char *argv[]) {
     // step 2: read in input image from file
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    unsigned char* image_buffer;
+    unsigned char* original_img;
+    unsigned char* new_img;
     unsigned int width_in, height_in;
-    unsigned int total_pixels, pixels_per_thread;
-    signed leftover_pixels;
 
-    int error = lodepng_decode32_file(&image_buffer, &width_in, &height_in, input_filename);
+    int error = lodepng_decode32_file(&original_img, &width_in, &height_in, input_filename);
     if (error) {
         printf("Error %u: %s\n", error, lodepng_error_text(error));
         return -1;
     }
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // step 3: make variables available to both CPU and GPU
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    unsigned char* original_img_cuda;
+    unsigned char* new_img_cuda;
+
+    // allocate for CPU
+    unsigned int img_size = width_in * height_in * 4 * sizeof(unsigned char);
+    new_img = (unsigned char*)malloc(img_size);
+
+    // allocate for GPU
+    cudaMalloc((void**)&original_img_cuda, img_size);
+    cudaMalloc((void**)&new_img_cuda, img_size);
+    cudaMemcpy(original_img, original_img, img_size, cudaMemcpyHostToDevice);
+
 
 
 
