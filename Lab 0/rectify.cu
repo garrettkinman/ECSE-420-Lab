@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
     cudaDeviceSynchronize();
 
     // record performance
-    printf("Parallel: %ul ms\n", clock() - startGPU);
+    printf("Parallel: %u\n", clock() - startGPU);
 
     cudaMemcpy(new_img, new_img_cuda, img_size, cudaMemcpyDeviceToHost);
 
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
     rectifySequential(original_img, new_img, img_size);
 
     // record performance
-    printf("Sequential: %ul ms\n", clock() - startCPU);
+    printf("Sequential: %u\n", clock() - startCPU);
 
     // ~~~~~~~~~~~~~~~~~~~~~
     // step 7: free at last!
