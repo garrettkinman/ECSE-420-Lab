@@ -30,7 +30,7 @@ void rectifySequential(unsigned char* original_img, unsigned char* new_img, unsi
 }
 
 int main(int argc, char *argv[]) {
-    
+
     // ~~~~~~~~~~~~~~~~~~~~~~~
     // step 1: parse arguments
     // ~~~~~~~~~~~~~~~~~~~~~~~
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
     // allocate for GPU
     cudaMalloc((void**)&original_img_cuda, img_size);
     cudaMalloc((void**)&new_img_cuda, img_size);
-    cudaMemcpy(original_img, original_img, img_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(original_img_cuda, original_img, img_size, cudaMemcpyHostToDevice);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // step 4: call parallelized rectify function, record performance
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
     rectifyParallel<<<1, num_threads>>>(original_img_cuda, new_img_cuda, num_threads, img_size);
 
     cudaDeviceSynchronize();
-    cudaMemcpy(new_img, new_img_cuda, img_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(new_img, new_img_cuda, img_size, cudaMemcpyDeviceToHost);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // step 5: write output image from parallelized rectify function to file
@@ -118,12 +118,14 @@ int main(int argc, char *argv[]) {
     // step 7: free at last!
     // ~~~~~~~~~~~~~~~~~~~~~
 
+    /*
     free(input_filename);
     free(output_filename);
     free(original_img);
     free(new_img);
     cudaFree(original_img_cuda);
     cudaFree(new_img_cuda);
+    */
 
     return 0;
 }
