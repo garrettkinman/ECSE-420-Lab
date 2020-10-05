@@ -3,6 +3,7 @@
 #include "lodepng.h"
 
 #include <stdio.h>
+#include <time.h>
 
 __global__ void rectifyParallel(unsigned char* original_img, unsigned char* new_img, unsigned int num_threads, unsigned int img_size)
 {
@@ -40,16 +41,6 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    int input_filename_len = strlen(argv[1]);
-    int output_filename_len = strlen(argv[2]);
-
-    // dynamically allocate strings of appropriate size to hold filenames
-    char *input_filename = (char*)malloc(input_filename_len * sizeof(char));
-    char *output_filename = (char*)malloc(output_filename_len * sizeof(char));
-
-    strcpy(input_filename, argv[1]);
-    strcpy(output_filename, argv[2]);
-
     unsigned int num_threads = atoi(argv[3]);
 
     if (num_threads < 1) {
@@ -65,7 +56,7 @@ int main(int argc, char *argv[]) {
     unsigned char* new_img;
     unsigned int img_width, img_height;
 
-    int error = lodepng_decode32_file(&original_img, &img_width, &img_height, input_filename);
+    int error = lodepng_decode32_file(&original_img, &img_width, &img_height, argv[1]);
     if (error) {
         printf("Error %d: %s\n", error, lodepng_error_text(error));
         return -1;
@@ -91,17 +82,22 @@ int main(int argc, char *argv[]) {
     // step 4: call parallelized rectify function, record performance
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    // TODO: measure time
-    rectifyParallel<<<1, num_threads>>>(original_img_cuda, new_img_cuda, num_threads, img_size);
+    // start timing GPU
+    clock_t startGPU = clock();
 
+    rectifyParallel<<<1, num_threads>>>(original_img_cuda, new_img_cuda, num_threads, img_size);
     cudaDeviceSynchronize();
+
+    // record performance
+    printf("Parallel: %u\n", clock() - startGPU);
+
     cudaMemcpy(new_img, new_img_cuda, img_size, cudaMemcpyDeviceToHost);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // step 5: write output image from parallelized rectify function to file
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    error = lodepng_encode32_file(output_filename, new_img, img_width, img_height);
+    error = lodepng_encode32_file(argv[2], new_img, img_width, img_height);
     if (error) {
         printf("Error %d: %s\n", error, lodepng_error_text(error));
         return -1;
@@ -111,21 +107,22 @@ int main(int argc, char *argv[]) {
     // step 6: call sequential rectify function, record performance
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    // TODO: measure time
+    // start timing CPU
+    clock_t startCPU = clock();
+
     rectifySequential(original_img, new_img, img_size);
+
+    // record performance
+    printf("Sequential: %u\n", clock() - startCPU);
 
     // ~~~~~~~~~~~~~~~~~~~~~
     // step 7: free at last!
     // ~~~~~~~~~~~~~~~~~~~~~
 
-    /*
-    free(input_filename);
-    free(output_filename);
     free(original_img);
     free(new_img);
     cudaFree(original_img_cuda);
     cudaFree(new_img_cuda);
-    */
 
     return 0;
 }
