@@ -3,6 +3,7 @@
 #include "lodepng.h"
 
 #include <stdio.h>
+#include <time.h>
 
 __global__ void rectifyParallel(unsigned char* original_img, unsigned char* new_img, unsigned int num_threads, unsigned int img_size)
 {
@@ -91,10 +92,15 @@ int main(int argc, char *argv[]) {
     // step 4: call parallelized rectify function, record performance
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    // TODO: measure time
-    rectifyParallel<<<1, num_threads>>>(original_img_cuda, new_img_cuda, num_threads, img_size);
+    // start timing GPU
+    clock_t startGPU = clock();
 
+    rectifyParallel<<<1, num_threads>>>(original_img_cuda, new_img_cuda, num_threads, img_size);
     cudaDeviceSynchronize();
+
+    // record performance
+    printf("Parallel: %ul ms\n", clock() - startGPU);
+
     cudaMemcpy(new_img, new_img_cuda, img_size, cudaMemcpyDeviceToHost);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -111,8 +117,13 @@ int main(int argc, char *argv[]) {
     // step 6: call sequential rectify function, record performance
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    // TODO: measure time
+    // start timing CPU
+    clock_t startCPU = clock();
+
     rectifySequential(original_img, new_img, img_size);
+
+    // record performance
+    printf("Sequential: %ul ms\n", clock() - startCPU);
 
     // ~~~~~~~~~~~~~~~~~~~~~
     // step 7: free at last!
