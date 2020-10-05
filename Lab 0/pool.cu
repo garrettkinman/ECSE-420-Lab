@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 void getDimensions(int numThreads, int* width, int* height) {
     *height = 1;
@@ -161,11 +162,17 @@ int main(int argc, char *argv[]) {
         new_image[i] = image[i];
     }
 
+    // start timing GPU
+    clock_t startGPU = clock();
+
     // launch pool() kernel on GPU with numThreads threads
     poolParallel<<<1, numThreads >> > (new_image, pool_image, width, height, sectors_x, sectors_y);
 
     // wait for threads to end on GPU
     cudaDeviceSynchronize();
+
+    // record performance
+    printf("Parallel: %u\n", clock() - startGPU);
 
     // write resulting image to output file
     lodepng_encode32_file(argv[2], pool_image, width / 2, height / 2);
