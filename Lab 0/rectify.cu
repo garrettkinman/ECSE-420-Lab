@@ -41,16 +41,6 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    int input_filename_len = strlen(argv[1]);
-    int output_filename_len = strlen(argv[2]);
-
-    // dynamically allocate strings of appropriate size to hold filenames
-    char *input_filename = (char*)malloc(input_filename_len * sizeof(char));
-    char *output_filename = (char*)malloc(output_filename_len * sizeof(char));
-
-    strcpy(input_filename, argv[1]);
-    strcpy(output_filename, argv[2]);
-
     unsigned int num_threads = atoi(argv[3]);
 
     if (num_threads < 1) {
@@ -66,7 +56,7 @@ int main(int argc, char *argv[]) {
     unsigned char* new_img;
     unsigned int img_width, img_height;
 
-    int error = lodepng_decode32_file(&original_img, &img_width, &img_height, input_filename);
+    int error = lodepng_decode32_file(&original_img, &img_width, &img_height, argv[1]);
     if (error) {
         printf("Error %d: %s\n", error, lodepng_error_text(error));
         return -1;
@@ -107,7 +97,7 @@ int main(int argc, char *argv[]) {
     // step 5: write output image from parallelized rectify function to file
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    error = lodepng_encode32_file(output_filename, new_img, img_width, img_height);
+    error = lodepng_encode32_file(argv[2], new_img, img_width, img_height);
     if (error) {
         printf("Error %d: %s\n", error, lodepng_error_text(error));
         return -1;
@@ -129,14 +119,10 @@ int main(int argc, char *argv[]) {
     // step 7: free at last!
     // ~~~~~~~~~~~~~~~~~~~~~
 
-    /*
-    free(input_filename);
-    free(output_filename);
     free(original_img);
     free(new_img);
     cudaFree(original_img_cuda);
     cudaFree(new_img_cuda);
-    */
 
     return 0;
 }
