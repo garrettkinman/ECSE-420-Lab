@@ -7,7 +7,7 @@ import pycuda.autoinit
 from pycuda.compiler import SourceModule
 
 # take in program params
-execution_type = int(input("What kind of exectution type do you want?\n"
+execution_type = int(input("What kind of execution type do you want?\n"
                         "Enter '1' for sequential.\n"
                         "Enter '2' for parallel explicit.\n"
                         "Enter '3' for parallel unified.\n"))
