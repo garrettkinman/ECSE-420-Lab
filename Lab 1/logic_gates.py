@@ -20,6 +20,7 @@ output_filepath = input("Output file path: ")
 
 # read in inputs, convert to numpy array
 gate_inputs = pd.read_csv(input_filepath, header=None).values
+# TODO: trim size to input_filelength
 
 
 class Gates(enum.Enum):
