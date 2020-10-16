@@ -19,7 +19,7 @@ output_filepath = input("Output file path: ")
 # TODO
 
 # read in inputs, convert to numpy array
-# TODO
+gate_inputs = pd.read_csv(input_filepath, header=None).values
 
 
 class Gates(enum.Enum):
@@ -49,9 +49,9 @@ def simulate_gate(x1, x2, gate):
         # ? throw exception?
         return None
 
+# gates should be an array of 
 def simulate_sequential(gates):
-    # TODO: for each gate, calculate the output, write to output array
-    return None
+    return np.array(map(simulate_gate, gates))
 
 def simulate_parallel_explicit(gates):
     # TODO: same as above, but parallel with explicit cuda memory allocation
@@ -60,3 +60,4 @@ def simulate_parallel_explicit(gates):
 def simulate_parallel_unified(gates):
     # TODO: same as above, but parallel with unified cuda memory allocation
     return None
+
