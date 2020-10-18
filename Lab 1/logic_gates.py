@@ -27,6 +27,7 @@ output_filepath = sys.argv[4]
 # read in inputs, convert to numpy array
 gate_inputs = pd.read_csv(input_filepath, header=None).values[:input_length]
 
+
 class Gates(enum.Enum):
     AND = 0
     OR = 1
@@ -35,36 +36,42 @@ class Gates(enum.Enum):
     XOR = 4
     XNOR = 5
 
+
 # declare functions for performing simulations
 
-def simulate_gate(x1, x2, gate):
-    if gate == Gates.AND:
+def simulate_gate(gate_spec):
+    x1, x2, gate = gate_spec
+    if Gates(gate) == Gates.AND:
         return x1 and x2
-    elif gate == Gates.OR:
+    elif Gates(gate) == Gates.OR:
         return x1 or x2
-    elif gate == Gates.NAND:
+    elif Gates(gate) == Gates.NAND:
         return not (x1 and x2)
-    elif gate == Gates.NOR:
+    elif Gates(gate) == Gates.NOR:
         return not (x1 or x2)
-    elif gate == Gates.XOR:
+    elif Gates(gate) == Gates.XOR:
         return (x1 or x2) and not (x1 and x2)
-    elif gate == Gates.XNOR:
-        return (x1 and x2) or ((not x1) and (not x2))
+    elif Gates(gate) == Gates.XNOR:
+        return (x1 and x2) or (not x1 and not x2)
     else:
         # ? throw exception?
         return None
 
-# gates should be an array of 
+
+# gates should be an array of
 def simulate_sequential(gates):
-    return np.array(map(simulate_gate, gates))
+    return np.array(list(map(simulate_gate, gates)))
+
 
 def simulate_parallel_explicit(gates):
     # TODO: same as above, but parallel with explicit cuda memory allocation
     return None
 
+
 def simulate_parallel_unified(gates):
     # TODO: same as above, but parallel with unified cuda memory allocation
     return None
+
 
 def write_to_output(exec_type, gates, filepath):
     if exec_type == "sequential":
@@ -76,6 +83,7 @@ def write_to_output(exec_type, gates, filepath):
     else:
         # ? throw exception?
         return
+
 
 # perform simulations
 write_to_output(execution_type, gate_inputs, output_filepath)
