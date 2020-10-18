@@ -66,16 +66,16 @@ def simulate_parallel_unified(gates):
     # TODO: same as above, but parallel with unified cuda memory allocation
     return None
 
-def write_to_output():
-    if execution_type == "sequential":
-        simulate_sequential(gate_inputs).tofile(output_filepath, sep='\n')
-    elif execution_type == "parallel_explicit":
-        pd.DataFrame(simulate_parallel_explicit(gate_inputs)).to_csv(output_filepath)
-    elif execution_type == "parallel_unified":
-        pd.DataFrame(simulate_parallel_unified(gate_inputs)).to_csv(output_filepath)
+def write_to_output(exec_type, gates, filepath):
+    if exec_type == "sequential":
+        simulate_sequential(gates).tofile(filepath, sep='\n')
+    elif exec_type == "parallel_explicit":
+        pd.DataFrame(simulate_parallel_explicit(gates)).to_csv(filepath)
+    elif exec_type == "parallel_unified":
+        pd.DataFrame(simulate_parallel_unified(gates)).to_csv(filepath)
     else:
         # ? throw exception?
         return
 
 # perform simulations
-write_to_output()
+write_to_output(execution_type, gate_inputs, output_filepath)
