@@ -3,9 +3,7 @@ import sys
 import enum
 import numpy as np
 import pandas as pd
-import pycuda.driver as cuda
-import pycuda.autoinit
-from pycuda.compiler import SourceModule
+import cupy as cp
 
 # take in program params
 # TODO: turn these into CLI args
@@ -13,13 +11,6 @@ execution_type = sys.argv[1]
 input_filepath = sys.argv[2]
 input_length = int(sys.argv[3])
 output_filepath = sys.argv[4]
-# execution_type = int(input("What kind of execution type do you want?\n"
-#                         "Enter '1' for sequential.\n"
-#                         "Enter '2' for parallel explicit.\n"
-#                         "Enter '3' for parallel unified.\n"))
-# input_filepath = input("Input file path: ")
-# input_filelength = int(input("Input file length: "))
-# output_filepath = input("Output file path: ")
 
 # validate params
 # TODO
@@ -65,6 +56,8 @@ def simulate_sequential(gates):
 
 def simulate_parallel_explicit(gates):
     # TODO: same as above, but parallel with explicit cuda memory allocation
+    gates_gpu = cp.asarray(gates)
+
     return None
 
 
