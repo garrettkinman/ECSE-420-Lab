@@ -94,23 +94,49 @@ int main(int argc, char* argv[]) {
     Gate* gates = (Gate*)malloc(sizeof(Gate) * input_length);
     read_csv_to_gates(argv[1], gates, input_length);
 
-    // ~~~~~~~~~~~~~~~~~~~
-    // step 3: copy to GPU
-    // ~~~~~~~~~~~~~~~~~~~
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+    // step 3: time copy to GPU
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
 
     Gate* gates_cuda;
     cudaMalloc((void**)&gates_cuda, sizeof(Gate) * input_length);
+
+    cudaEvent_t startCpy, stopCpy;
+    cudaEventCreate(&startCpy);
+    cudaEventCreate(&stopCpy);
+
+    cudaEventRecord(startCpy);
     cudaMemcpy(gates_cuda, gates, sizeof(Gate) * input_length, cudaMemcpyHostToDevice);
+    cudaEventRecord(stopCpy);
+    cudaEventSynchronize(stopCpy);
+
+    float timeCpy;
+    cudaEventElapsedTime(&timeCpy, startCpy, stopCpy);
+    printf("Memcpy Explicit: %.6f ms\n", timeCpy);
+
+    cudaEventDestroy(startCpy);
+    cudaEventDestroy(stopCpy);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // step 4: time parallel simulation
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    clock_t startCPU = clock();
+    cudaEvent_t startGPU, stopGPU;
+    cudaEventCreate(&startGPU);
+    cudaEventCreate(&stopGPU);
 
+    cudaEventRecord(startGPU);
     // so that all gates get simulated even without a power-of-two number of gates
     simulate_parallel<<<(input_length + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(gates_cuda, input_length);
-    printf("Parallel Explicit: %u\n", clock() - startCPU);
+    cudaEventRecord(stopGPU);
+    cudaEventSynchronize(stopGPU);
+
+    float timeGPU;
+    cudaEventElapsedTime(&timeGPU, startGPU, stopGPU);
+    printf("Parallel Explicit: %.6f ms\n", timeGPU);
+
+    cudaEventDestroy(startGPU);
+    cudaEventDestroy(stopGPU);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // step 5: write to file and done!
