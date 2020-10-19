@@ -102,11 +102,13 @@ int main(int argc, char* argv[]) {
     cudaMalloc((void**)&gates_cuda, sizeof(Gate) * input_length);
     cudaMemcpy(gates_cuda, gates, sizeof(Gate) * input_length, cudaMemcpyHostToDevice);
 
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // step 4: time parallel simulation
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     clock_t startCPU = clock();
+
+    // so that all gates get simulated even without a power-of-two number of gates
     simulate_parallel<<<(input_length + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(gates_cuda, input_length);
     printf("Parallel Explicit: %u\n", clock() - startCPU);
 
