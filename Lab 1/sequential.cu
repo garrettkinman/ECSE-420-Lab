@@ -83,15 +83,27 @@ int main(int argc, char* argv[]) {
 
     unsigned int input_length = atoi(argv[2]);
 
-    // allocate for CPU
-    Gate* gates = (Gate*)malloc(sizeof(Gate) * input_length);
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // step 2: read in inputs from file
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    Gate* gates = (Gate*)malloc(sizeof(Gate) * input_length);
     read_csv_to_gates(argv[1], gates, input_length);
 
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // step 3: time sequential simulation
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    clock_t startCPU = clock();
     simulate_sequential(gates, input_length);
+    printf("Sequential: %u\n", clock() - startCPU);
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // step 4: write to file and done!
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     write_gates_to_file(argv[3], gates, input_length);
-
     free(gates);
 
+    return 0;
 }
