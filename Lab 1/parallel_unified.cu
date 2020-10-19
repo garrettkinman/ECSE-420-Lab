@@ -2,7 +2,6 @@
 #include "device_launch_parameters.h"
 
 #include <stdio.h>
-#include <time.h>
 #include <stdlib.h>
 
 #define AND 0
@@ -104,17 +103,28 @@ int main(int argc, char* argv[]) {
     // step 4: time parallel simulation
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    clock_t startCPU = clock();
+    cudaEvent_t startGPU, stopGPU;
+    cudaEventCreate(&startGPU);
+    cudaEventCreate(&stopGPU);
 
+    cudaEventRecord(startGPU);
     // so that all gates get simulated even without a power-of-two number of gates
     simulate_parallel<<<(input_length + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(gates_cuda, input_length);
-    printf("Parallel Explicit: %u\n", clock() - startCPU);
+    cudaDeviceSynchronize();
+    cudaEventRecord(stopGPU);
+    cudaEventSynchronize(stopGPU);
+
+    float timeGPU;
+    cudaEventElapsedTime(&timeGPU, startGPU, stopGPU);
+    printf("Parallel Unified: %.6f ms\n", timeGPU);
+
+    cudaEventDestroy(startGPU);
+    cudaEventDestroy(stopGPU);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // step 5: write to file and done!
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    cudaDeviceSynchronize();
     write_gates_to_file(argv[3], gates_cuda, input_length);
     cudaFree(gates_cuda);
 

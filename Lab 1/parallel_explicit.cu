@@ -2,7 +2,6 @@
 #include "device_launch_parameters.h"
 
 #include <stdio.h>
-#include <time.h>
 #include <stdlib.h>
 
 #define AND 0
