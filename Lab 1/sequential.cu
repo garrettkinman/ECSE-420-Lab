@@ -96,7 +96,8 @@ int main(int argc, char* argv[]) {
 
     clock_t startCPU = clock();
     simulate_sequential(gates, input_length);
-    printf("Sequential: %u\n", clock() - startCPU);
+    clock_t stopCPU = clock();
+    printf("Sequential: %.6f ms\n", ((double)stopCPU - (double)startCPU) * 1000.0 / CLOCKS_PER_SEC);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // step 4: write to file and done!
