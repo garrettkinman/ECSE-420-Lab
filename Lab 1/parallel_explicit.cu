@@ -12,6 +12,8 @@
 #define XOR 4
 #define XNOR 5
 
+#define THREADS_PER_BLOCK 1024
+
 typedef struct Gate {
     char type;
     char x1;
@@ -20,7 +22,7 @@ typedef struct Gate {
 } Gate;
 
 __global__ void simulate_parallel(Gate* gates, unsigned int size) {
-    int i = threadIdx.x;
+    int i = (blockIdx.x * blockDim.x) + threadIdx.x;
     switch (gates[i].type) {
         case AND:
             gates[i].y = gates[i].x1 && gates[i].x2;
@@ -105,7 +107,7 @@ int main(int argc, char* argv[]) {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     clock_t startCPU = clock();
-    simulate_parallel<<<1, input_length>>>(gates, input_length);
+    simulate_parallel<<<(input_length + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(gates_cuda, input_length);
     printf("Parallel Explicit: %u\n", clock() - startCPU);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
