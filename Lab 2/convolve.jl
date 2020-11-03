@@ -8,40 +8,47 @@ kernel = Matrix([1 2 -1
                 2 0.25 -2
                 1 -2 -1])
 
-function ∑(window::AbstractMatrix{RGB}, kernel::AbstractMatrix)::RGB
+function ∑(window::AbstractArray, kernel::AbstractArray)::RGB
     # find the R, G, and B components of each convolution window
-    r_component = dot(red.(window), kernel)
-    g_component = dot(green.(window), kernel)
-    b_component = dot(green.(window), kernel)
-    return RGB(r_component, g_component, b_component)
+    R = 0.0
+    G = 0.0
+    B = 0.0
+    for i ∈ 1:3
+        for j ∈ 1:3
+            R += window[i,j].r * kernel[i,j]
+            G += window[i,j].g * kernel[i,j]
+            B += window[i,j].b * kernel[i,j]
+        end
+    end
+    return thresh(RGB(R, G, B))
 end
 
 function thresh(x::RGB)::RGB
-    return RGB(clamp(x.r), clamp(x.g), clamp(x.b))
+    return RGB(thresh(x.r), thresh(x.g), thresh(x.b))
 end
 
-function thresh(x::Integer)::Integer
-    if x > 255
-        return 255
+function thresh(x::Normed)::Normed
+    if x > 1
+        return 1.0
     elseif x < 0
-        return 0
+        return 0.0
     end
     return x
 end
 
-function convolve_sequential(img::AbstractMatrix{RGB}, kernel::AbstractMatrix)::AbstractMatrix{RGB}
+function convolve_sequential(img::AbstractArray, kernel::AbstractArray)
     # TODO
     height, width = size(img)
-    convolved = Matrix(RGB(0, 0, 0), (height - 2, width - 2))
+    convolved = copy(img)
     for i ∈ 2:(height - 1)
         for j ∈ 2:(width - 1)
-            convolved[i,j] = round(∑(img[i-1:i+1,j-1:j+1], kernel))
+            convolved[i,j] = ∑(img[i - 1:i + 1,j - 1:j + 1], kernel)
         end
     end
-    return map(clamp, convolved)
+    return map(thresh, convolved)[2:height - 1,2:width - 1]
 end
 
-function convolve_parallel(img::AbstractMatrix{RGB}, kernel::AbstractMatrix, num_threads::Int)::AbstractMatrix{RGB}
+function convolve_parallel(img::AbstractArray, kernel::AbstractArray, num_threads::Int)
     # TODO
 end
 
