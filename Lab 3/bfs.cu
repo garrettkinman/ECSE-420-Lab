@@ -15,21 +15,11 @@ __global__ void blockQueueingBFS() {
 
 }
 
-int main(int argc, char* argv[]) {
-    // ~~~~~~~~~~~~~~~~~~~~~~~
-    // step 1: parse arguments
-    // ~~~~~~~~~~~~~~~~~~~~~~~
+// declare global variables for testing
+const char* inputs[4] = { "input1.raw", "input2.raw", "input3.raw", "input4.raw" };
+const char* nodeOutput = "nodeOutput.raw";
+const char* nextLevelNodes = "nextLevelNodes.raw";
 
-    // TODO: CLI args
-    if (argc != 4) {
-        printf("Error: Input arguments are of format:\n./bfs <input filename> <output filename> <# threads>");
-        return -1;
-    }
+int main() {
 
-    unsigned int n_threads = atoi(argv[3]);
-
-    if (n_threads < 1) {
-        printf("Error: '%u' is an invalid number of threads.\nNumber of threads must be greater than zero.", n_threads);
-        return -1;
-    }
 }
