@@ -10,11 +10,32 @@ helper functions for reading in the files
 int read_input_one_two_four(int** input1, char* filepath);
 int read_input_three(int** input1, int** input2, int** input3, int** input4, char* filepath);
 
-void sequentialBFS() {
+/*
+helper function for solving output of a gate
+*/
+int gate_solver(int gate, int x1, int x2);
+
+void sequentialBFS(int numCurrLevelNodes, int* currLevelNodes, int* nodePtrs,
+                    int* nodeNeighbors, int* nodeVisited, int* nodeOutput,
+                    int* nodeGate, int* nodeInput, int* nextLevelNodes, int numNextLevelNodes) {
 	// loop over all nodes in the current level
-		// loop over all neighbors of the node
-			// if the neighbor hasn't been visited yet
-				// mark it and add it to the queue
+    for (int i = 0; i <= numCurrLevelNodes; i++) {
+        int node = currLevelNodes[i];
+        // loop over all neighbors of the node
+        for (int j = nodePtrs[node]; j <= nodePtrs[node + 1]; j++) {
+            int neighbor = nodeNeighbors[j];
+            // if the neighbor hasn't been visited yet
+            // mark it and add it to the queue
+            if (!nodeVisited[neighbor]) {
+                nodeVisited[neighbor] = 1;
+                nodeOutput[neighbor] = gate_solver(nodeGate[neighbor], nodeOutput[node], nodeInput[neighbor]);
+                nextLevelNodes[numNextLevelNodes] = neighbor;
+                ++numNextLevelNodes;
+            }
+        }
+            
+    }
+
 			
 }
 
@@ -111,4 +132,11 @@ int read_input_three(int** input1, int** input2, int** input3, int** input4, cha
 
     fclose(fp);
     return len;
+}
+
+/*
+helper function for solving output of a gate
+*/
+int gate_solver(int gate, int x1, int x2) {
+    // TODO
 }
