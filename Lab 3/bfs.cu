@@ -4,6 +4,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define AND 0
+#define OR 1
+#define NAND 2
+#define NOR 3
+#define XOR 4
+#define XNOR 5
+
 /*
 helper functions for reading and writing the files
 */
@@ -154,5 +161,18 @@ void writeData(int* data, char* filepath) {
 helper function for solving output of a gate
 */
 int gate_solver(int gate, int x1, int x2) {
-    // TODO
+    switch (gate) {
+        case AND:
+            return x1 && x2;
+        case OR:
+            return x1 || x2;
+        case NAND:
+            return !(x1 && x2);
+        case NOR:
+            return !(x1 || x2);
+        case XOR:
+            return (x1 || x2) && !(x1 && x2);
+        case XNOR:
+            return (x1 && x2) || (!x1 && !x2);
+    }
 }
