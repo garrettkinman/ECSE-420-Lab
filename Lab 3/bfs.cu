@@ -5,10 +5,11 @@
 #include <stdlib.h>
 
 /*
-helper functions for reading in the files
+helper functions for reading and writing the files
 */
 int read_input_one_two_four(int** input1, char* filepath);
 int read_input_three(int** input1, int** input2, int** input3, int** input4, char* filepath);
+void writeData(int* data, char* filepath);
 
 /*
 helper function for solving output of a gate
@@ -49,9 +50,9 @@ __global__ void blockQueueingBFS() {
 
 int main() {
     // variables for file names
-    char* inputs[4] = { "input1.raw", "input2.raw", "input3.raw", "input4.raw" };
-    char* nodeOutput = "nodeOutput.raw";
-    char* nextLevelNodes = "nextLevelNodes.raw";
+    char* inputFilenames[4] = { "input1.raw", "input2.raw", "input3.raw", "input4.raw" };
+    char* nodeOutputFilename = "nodeOutput.raw";
+    char* nextLevelNodesFilename = "nextLevelNodes.raw";
     
     // variables to hold state of the logic circuit
     int numNodePtrs;
@@ -68,10 +69,14 @@ int main() {
     int* nodeOutput_h;
     int* nextLevelNodes_h;
 
-    numNodePtrs = read_input_one_two_four(&nodePtrs_h, inputs[0]);
-    numTotalNeighbors_h = read_input_one_two_four(&nodeNeighbors_h, inputs[1]);
-    numNodes = read_input_three(&nodeVisited_h, &nodeGate_h, &nodeInput_h, &nodeOutput_h, inputs[2]);
-    numCurrLevelNodes = read_input_one_two_four(&currLevelNodes_h, inputs[3]);
+    numNodePtrs = read_input_one_two_four(&nodePtrs_h, inputFilenames[0]);
+    numTotalNeighbors_h = read_input_one_two_four(&nodeNeighbors_h, inputFilenames[1]);
+    numNodes = read_input_three(&nodeVisited_h, &nodeGate_h, &nodeInput_h, &nodeOutput_h, inputFilenames[2]);
+    numCurrLevelNodes = read_input_one_two_four(&currLevelNodes_h, inputFilenames[3]);
+
+    // TODO: simulate!
+
+    return 0;
 }
 
 /*
@@ -132,6 +137,17 @@ int read_input_three(int** input1, int** input2, int** input3, int** input4, cha
 
     fclose(fp);
     return len;
+}
+
+/*
+helper function for writing out the files
+*/
+void writeData(int* data, char* filepath) {
+    FILE* fp = fopen(filepath, "w+");
+    for (int i = 0; i < sizeof(data) / sizeof(data[0]); i++) {
+        fprintf(fp, "%d\n", data[i]);
+    }
+    fclose(fp);
 }
 
 /*
