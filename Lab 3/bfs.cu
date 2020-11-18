@@ -27,20 +27,20 @@ int gate_solver(int gate, int x1, int x2);
 
 void sequentialBFS(int numCurrLevelNodes, int* currLevelNodes, int* nodePtrs,
                     int* nodeNeighbors, int* nodeVisited, int* nodeOutput,
-                    int* nodeGate, int* nodeInput, int* nextLevelNodes, int numNextLevelNodes) {
+                    int* nodeGate, int* nodeInput, int* nextLevelNodes, int* numNextLevelNodes) {
 	// loop over all nodes in the current level
-    for (int i = 0; i <= numCurrLevelNodes; i++) {
+    for (int i = 0; i < numCurrLevelNodes; i++) {
         int node = currLevelNodes[i];
         // loop over all neighbors of the node
-        for (int j = nodePtrs[node]; j <= nodePtrs[node + 1]; j++) {
+        for (int j = nodePtrs[node]; j < nodePtrs[node + 1]; j++) {
             int neighbor = nodeNeighbors[j];
             // if the neighbor hasn't been visited yet
             // mark it and add it to the queue
             if (!nodeVisited[neighbor]) {
                 nodeVisited[neighbor] = 1;
                 nodeOutput[neighbor] = gate_solver(nodeGate[neighbor], nodeOutput[node], nodeInput[neighbor]);
-                nextLevelNodes[numNextLevelNodes] = neighbor;
-                ++numNextLevelNodes;
+                nextLevelNodes[*numNextLevelNodes] = neighbor;
+                ++(*numNextLevelNodes);
             }
         }
             
@@ -72,11 +72,11 @@ int main() {
     int numTotalNeighbors_h;
     int* currLevelNodes_h;
     int numCurrLevelNodes;
-    int numNextLevelNodes_h;
+    int numNextLevelNodes_h = 0;
     int* nodeGate_h;
     int* nodeInput_h;
     int* nodeOutput_h;
-    int* nextLevelNodes_h;
+    int nextLevelNodes_h[40101];
 
     numNodePtrs = read_input_one_two_four(&nodePtrs_h, inputFilenames[0]);
     numTotalNeighbors_h = read_input_one_two_four(&nodeNeighbors_h, inputFilenames[1]);
@@ -84,7 +84,7 @@ int main() {
     numCurrLevelNodes = read_input_one_two_four(&currLevelNodes_h, inputFilenames[3]);
 
     // TODO: simulate!
-    sequentialBFS(numCurrLevelNodes, currLevelNodes_h, nodePtrs_h, nodeNeighbors_h, nodeVisited_h, nodeOutput_h, nodeGate_h, nodeInput_h, nextLevelNodes_h, numNextLevelNodes_h);
+    sequentialBFS(numCurrLevelNodes, currLevelNodes_h, nodePtrs_h, nodeNeighbors_h, nodeVisited_h, nodeOutput_h, nodeGate_h, nodeInput_h, nextLevelNodes_h, &numNextLevelNodes_h);
 
     writeData(nodeOutput_h, nodeOutputFilename);
     writeData(nextLevelNodes_h, nextLevelNodesFilename);
