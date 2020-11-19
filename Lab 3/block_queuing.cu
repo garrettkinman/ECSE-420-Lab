@@ -17,74 +17,40 @@
 #define NAND 2
 #define NOR 3
 #define XOR 4
-#define NXOR 5
+#define XNOR 5
 
-inline cudaError_t checkCudaErr(cudaError_t err, const char* msg) {
-  if (err != cudaSuccess)
-      fprintf(stderr, "CUDA Runtime error at %s: %s\n", msg, cudaGetErrorString(err));
-  return err;
-}
-
-int read_input_one_two_four(int **input1, char* filepath) {
-    FILE* fp = fopen(filepath, "r");
-    if (fp == NULL){
-        fprintf(stderr, "Couldn't open file for reading\n");
-        exit(1);
-    } 
-  
-    int counter = 0;
-    int len;
-    int length = fscanf(fp, "%d", &len);
-    *input1 = ( int *)malloc(len * sizeof(int));
-
-    int temp1;
-
-    while (fscanf(fp, "%d", &temp1) == 1) {
-        (*input1)[counter] = temp1;
-        counter++;
-    }
-
-    fclose(fp);
-    return len;
-}
-
-int read_input_three(int** input1, int** input2, int** input3, int** input4, char* filepath){
-    FILE* fp = fopen(filepath, "r");
-    if (fp == NULL){
-        fprintf(stderr, "Couldn't open file for reading\n");
-        exit(1);
-    } 
-  
-    int counter = 0;
-    int len;
-    int length = fscanf(fp, "%d", &len);
-    *input1 = ( int *)malloc(len * sizeof(int));
-    *input2 = ( int *)malloc(len * sizeof(int));
-    *input3 = ( int *)malloc(len * sizeof(int));
-    *input4 = ( int *)malloc(len * sizeof(int));
-
-    int temp1;
-    int temp2;
-    int temp3;
-    int temp4;
-    while (fscanf(fp, "%d,%d,%d,%d", &temp1, &temp2, &temp3, &temp4) == 4) {
-        (*input1)[counter] = temp1;
-        (*input2)[counter] = temp2;
-        (*input3)[counter] = temp3;
-        (*input4)[counter] = temp4;
-        counter++;
-    }
-
-    fclose(fp);
-    return len;
-}
+/*
+helper functions to read in inputs
+*/
+int read_input_one_two_four(int** input1, char* filepath);
+int read_input_three(int** input1, int** input2, int** input3, int** input4, char* filepath);
 
 __device__ int numNextLevelNodes = 0;
 __device__ int nextLevelNodesQueue[5000000];
 
-__global__ void block_queuing_kernel(int numCurrLevelNodes, int* currLevelNodes, int* nodeNeighbors, int* nodePtrs, int* nodeVisited, int* nodeInput, int* nodeOutput_cuda, int* nodeGate, int queueSize){
+/*
+helper device function to solve a given logic gate and inputs
+*/
+__device__ int gate_solver(int gate, int x1, int x2) {
+    switch (gate) {
+    case AND:
+        return x1 && x2;
+    case OR:
+        return x1 || x2;
+    case NAND:
+        return !(x1 && x2);
+    case NOR:
+        return !(x1 || x2);
+    case XOR:
+        return (x1 || x2) && !(x1 && x2);
+    case XNOR:
+        return (x1 && x2) || (!x1 && !x2);
+    }
+}
+
+__global__ void block_queuing_kernel(int numCurrLevelNodes, int* currLevelNodes, int* nodeNeighbors, int* nodePtrs, int* nodeVisited, int* nodeInput, int* nodeOutput, int* nodeGate, int queueSize){
     
-    // Initialize shared memory queue
+    // initialize shared memory queue
     extern __shared__ int sharedBlockQueue[];
     __shared__ int sharedBlockQueueSize, blockGlobalQueueIdx;
 
@@ -107,36 +73,11 @@ __global__ void block_queuing_kernel(int numCurrLevelNodes, int* currLevelNodes,
             const int visited = atomicExch(&(nodeVisited[neighborIdx]), 1);
             if (!(visited)) {
                 const int queueIdx = atomicAdd(&sharedBlockQueueSize, 1);
-                int result = 0;
-                int nodeGateVal = nodeGate[neighborIdx];
-                int nodeInputVal = nodeInput[neighborIdx];
-                int nodeOutputVal = nodeOutput_cuda[nodeIdx];
 
-                switch (nodeGateVal) {
-                    case 0:
-                        result = nodeInputVal & nodeOutputVal;
-                        break;
-                    case 1:
-                        result = nodeInputVal | nodeOutputVal;
-                        break;
-                    case 2:
-                        result = !(nodeInputVal & nodeOutputVal);
-                        break;
-                    case 3:
-                        result = !(nodeInputVal | nodeOutputVal);
-                        break;
-                    case 4:
-                        result = nodeInputVal ^ nodeOutputVal;
-                        break;
-                    case 5:
-                        result = !(nodeInputVal ^ nodeOutputVal);
-                        break;
-                }
-        
-                // Update node output
-                nodeOutput_cuda[neighborIdx] = result; 
+                nodeOutput[neighborIdx] = gate_solver(nodeGate[neighborIdx], nodeOutput[nodeIdx], nodeInput[neighborIdx]);
 
-                // Add to block queue if not full else add to global queue
+                // add to block queue if not full
+                // else, add to global queue
                 if (queueIdx < queueSize)
                     sharedBlockQueue[queueIdx] = neighborIdx;                  
                 else {
@@ -256,8 +197,7 @@ int main(int argc, char *argv[]){
     cudaEventRecord(startGPU);
 
     block_queuing_kernel<<<numBlocks, blockSize, queueSize*sizeof(int)>>>(numCurrLevelNodes, currLevelNodes_cuda, nodeNeighbors_cuda, nodePtrs_cuda, nodeVisited_cuda, nodeInput_cuda, nodeOutput_cuda, nodeGate_cuda, queueSize);
-    checkCudaErr(cudaDeviceSynchronize(), "Syncronization");
-    checkCudaErr(cudaGetLastError(), "GPU");
+    cudaDeviceSynchronize();
 
     cudaEventRecord(stopGPU);
     cudaEventSynchronize(stopGPU);
@@ -276,10 +216,10 @@ int main(int argc, char *argv[]){
 
     int* outputBuffer;
     outputBuffer = (int*)malloc(numNodesSize);
-    checkCudaErr(cudaMemcpy(outputBuffer, nodeOutput_cuda, numNodesSize, cudaMemcpyDeviceToHost), "Copying");
+    cudaMemcpy(outputBuffer, nodeOutput_cuda, numNodesSize, cudaMemcpyDeviceToHost);
 
     cudaMemcpyFromSymbol(&numNextLevelNodes_h, numNextLevelNodes, sizeof(int), 0, cudaMemcpyDeviceToHost);
-    checkCudaErr(cudaMemcpyFromSymbol(nextLevelNodes_h,nextLevelNodesQueue, numNextLevelNodes_h * sizeof(int), 0, cudaMemcpyDeviceToHost), "Copying");
+    cudaMemcpyFromSymbol(nextLevelNodes_h, nextLevelNodesQueue, numNextLevelNodes_h * sizeof(int), 0, cudaMemcpyDeviceToHost);
 
     // write nodeOutput
     FILE *nodeOutputFile = fopen(nodeOutputFilename, "w");
@@ -319,4 +259,58 @@ int main(int argc, char *argv[]){
     cudaFree(nodeInput_cuda);
     cudaFree(nodeOutput_cuda);
     cudaFree(nodeGate_cuda);
+}
+
+int read_input_one_two_four(int** input1, char* filepath) {
+    FILE* fp = fopen(filepath, "r");
+    if (fp == NULL) {
+        fprintf(stderr, "Couldn't open file for reading\n");
+        exit(1);
+    }
+
+    int counter = 0;
+    int len;
+    int length = fscanf(fp, "%d", &len);
+    *input1 = (int*)malloc(len * sizeof(int));
+
+    int temp1;
+
+    while (fscanf(fp, "%d", &temp1) == 1) {
+        (*input1)[counter] = temp1;
+        counter++;
+    }
+
+    fclose(fp);
+    return len;
+}
+
+int read_input_three(int** input1, int** input2, int** input3, int** input4, char* filepath) {
+    FILE* fp = fopen(filepath, "r");
+    if (fp == NULL) {
+        fprintf(stderr, "Couldn't open file for reading\n");
+        exit(1);
+    }
+
+    int counter = 0;
+    int len;
+    int length = fscanf(fp, "%d", &len);
+    *input1 = (int*)malloc(len * sizeof(int));
+    *input2 = (int*)malloc(len * sizeof(int));
+    *input3 = (int*)malloc(len * sizeof(int));
+    *input4 = (int*)malloc(len * sizeof(int));
+
+    int temp1;
+    int temp2;
+    int temp3;
+    int temp4;
+    while (fscanf(fp, "%d,%d,%d,%d", &temp1, &temp2, &temp3, &temp4) == 4) {
+        (*input1)[counter] = temp1;
+        (*input2)[counter] = temp2;
+        (*input3)[counter] = temp3;
+        (*input4)[counter] = temp4;
+        counter++;
+    }
+
+    fclose(fp);
+    return len;
 }
