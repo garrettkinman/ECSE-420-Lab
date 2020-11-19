@@ -1,5 +1,17 @@
+#ifndef CUDACC
+#define CUDACC
+#endif
+
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+#include <cuda.h>
+#include <device_functions.h>
+#include <cuda_runtime_api.h>
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+
 #define AND 0
 #define OR 1
 #define NAND 2
@@ -153,139 +165,151 @@ __global__ void block_queuing_kernel(int numCurrLevelNodes, int* currLevelNodes,
 
 int main(int argc, char *argv[]){
 
-  if( argc < 10) {
-    printf("Require parameters in the following order: <numBlock> <blockSize> <sharedQueueSize> <path_to_input_1.raw> <path_to_input_2.raw> <path_to_input_3.raw> <path_to_input_4.raw> <output_nodeOutput_filepath> <output_nextLevelNodes_filepath>.\n");
-    exit(1);
-  }
+    // ~~~~~~~~~~~~~~~~~~~~~~~
+    // step 1: parse arguments
+    // ~~~~~~~~~~~~~~~~~~~~~~~
+    
+    if (argc < 10) {
+        printf("Require parameters in the following order: <numBlock> <blockSize> <sharedQueueSize> <path_to_input_1.raw> <path_to_input_2.raw> <path_to_input_3.raw> <path_to_input_4.raw> <output_nodeOutput_filepath> <output_nextLevelNodes_filepath>.\n");
+        exit(1);
+    }
 
+    int numNodePtrs;
+    int numNodes;
+    int *nodePtrs_h;
+    int *nodeNeighbors_h;
+    int *nodeVisited_h;
+    int numTotalNeighbors_h;
+    int *currLevelNodes_h;
+    int numCurrLevelNodes;
+    int numNextLevelNodes_h = 0;
+    int *nodeGate_h;
+    int *nodeInput_h;
+    int *nodeOutput_h;
 
-  // Variables
-  int numNodePtrs;
-  int numNodes;
-  int *nodePtrs_h;
-  int *nodeNeighbors_h;
-  int *nodeVisited_h;
-  int numTotalNeighbors_h;
-  int *currLevelNodes_h;
-  int numCurrLevelNodes;
-  int numNextLevelNodes_h = 0;
-  int *nodeGate_h;
-  int *nodeInput_h;
-  int *nodeOutput_h;
+    const int blockSize = atoi(argv[1]);
+    const int numBlocks = atoi(argv[2]);
+    const int queueSize = atoi(argv[3]);
 
+    char* input1 = argv[4];
+    char* input2 = argv[5];
+    char* input3 = argv[6];
+    char* input4 = argv[7];
 
-  // User Input
-  const int blockSize = atoi(argv[1]);
-  const int numBlocks = atoi(argv[2]);
-  const int queueSize = atoi(argv[3]);
+    char* nodeOutputFilename = argv[8];
+    char* nextLevelNodesFilename = argv[9];
 
-  char* rawInput1 = argv[4];
-  char* rawInput2 = argv[5];
-  char* rawInput3 = argv[6];
-  char* rawInput4 = argv[7];
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // step 2: read in inputs from file
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  char* nodeOutput_fileName = argv[8];
-  char* nextLevelNodes_fileName = argv[9];
+    numNodePtrs = read_input_one_two_four(&nodePtrs_h, input1);
+    numTotalNeighbors_h = read_input_one_two_four(&nodeNeighbors_h, input2);
+    numNodes = read_input_three(&nodeVisited_h, &nodeGate_h, &nodeInput_h, &nodeOutput_h, input3);
+    numCurrLevelNodes = read_input_one_two_four(&currLevelNodes_h, input4);
 
-  numNodePtrs = read_input_one_two_four(&nodePtrs_h, rawInput1);
-  numTotalNeighbors_h = read_input_one_two_four(&nodeNeighbors_h, rawInput2);
-  numNodes = read_input_three(&nodeVisited_h, &nodeGate_h, &nodeInput_h, &nodeOutput_h, rawInput3);
-  numCurrLevelNodes = read_input_one_two_four(&currLevelNodes_h, rawInput4);
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+    // step 3: allocate for GPU
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
 
-
-  // Output structures
-  int *nextLevelNodes_h = (int *)malloc(numNodes*sizeof(int));
-  int *nextLevelNodes_C = (int *)malloc(numNodes*sizeof(int));
-  cudaMalloc (&nextLevelNodes_C, numCurrLevelNodes * sizeof(int));
-  cudaMemcpy(nextLevelNodes_C, nextLevelNodes_h, numCurrLevelNodes * sizeof(int), cudaMemcpyHostToDevice);
+    // outputs
+    int *nextLevelNodes_h = (int *)malloc(numNodes*sizeof(int));
+    int *nextLevelNodes_cuda = (int *)malloc(numNodes*sizeof(int));
+    cudaMalloc (&nextLevelNodes_cuda, numCurrLevelNodes * sizeof(int));
+    cudaMemcpy(nextLevelNodes_cuda, nextLevelNodes_h, numCurrLevelNodes * sizeof(int), cudaMemcpyHostToDevice);
   
+    // copy to device
+    int numNodesSize = numNodes * sizeof(int);
+    int* currLevelNodes_cuda = (int*)malloc(numCurrLevelNodes * sizeof(int)) ; 
+    cudaMalloc (&currLevelNodes_cuda, numCurrLevelNodes * sizeof(int));
+    cudaMemcpy(currLevelNodes_cuda, currLevelNodes_h, numCurrLevelNodes * sizeof(int), cudaMemcpyHostToDevice);
 
-  // Copy to device
-  int numNodesSize = numNodes * sizeof(int);
-  int* currLevelNodes_C = (int*)malloc(numCurrLevelNodes * sizeof(int)) ; 
-  cudaMalloc (&currLevelNodes_C, numCurrLevelNodes * sizeof(int));
-  cudaMemcpy(currLevelNodes_C, currLevelNodes_h, numCurrLevelNodes * sizeof(int), cudaMemcpyHostToDevice);
+    int* nodeNeighbors_cuda = (int*)malloc(numTotalNeighbors_h * sizeof(int)) ; 
+    cudaMalloc (&nodeNeighbors_cuda, numTotalNeighbors_h * sizeof(int));
+    cudaMemcpy(nodeNeighbors_cuda, nodeNeighbors_h, numTotalNeighbors_h * sizeof(int), cudaMemcpyHostToDevice);
 
-  int* nodeNeighbors_C = (int*)malloc(numTotalNeighbors_h * sizeof(int)) ; 
-  cudaMalloc (&nodeNeighbors_C, numTotalNeighbors_h * sizeof(int));
-  cudaMemcpy(nodeNeighbors_C, nodeNeighbors_h, numTotalNeighbors_h * sizeof(int), cudaMemcpyHostToDevice);
+    int* nodePtrs_cuda = (int*)malloc(numNodePtrs * sizeof(int)) ; 
+    cudaMalloc (&nodePtrs_cuda, numNodePtrs * sizeof(int));
+    cudaMemcpy(nodePtrs_cuda, nodePtrs_h, numNodePtrs * sizeof(int), cudaMemcpyHostToDevice);
 
-  int* nodePtrs_C = (int*)malloc(numNodePtrs * sizeof(int)) ; 
-  cudaMalloc (&nodePtrs_C, numNodePtrs * sizeof(int));
-  cudaMemcpy(nodePtrs_C, nodePtrs_h, numNodePtrs * sizeof(int), cudaMemcpyHostToDevice);
+    int* nodeVisited_cuda = (int*)malloc(numNodesSize) ; 
+    cudaMalloc (&nodeVisited_cuda, numNodesSize);
+    cudaMemcpy(nodeVisited_cuda, nodeVisited_h,numNodesSize, cudaMemcpyHostToDevice);
 
-  int* nodeVisited_C = (int*)malloc(numNodesSize) ; 
-  cudaMalloc (&nodeVisited_C, numNodesSize);
-  cudaMemcpy(nodeVisited_C, nodeVisited_h,numNodesSize, cudaMemcpyHostToDevice);
+    int* nodeInput_cuda = (int*)malloc(numNodesSize) ; 
+    cudaMalloc (&nodeInput_cuda, numNodesSize);
+    cudaMemcpy(nodeInput_cuda, nodeInput_h, numNodesSize, cudaMemcpyHostToDevice);
 
-  int* nodeInput_C = (int*)malloc(numNodesSize) ; 
-  cudaMalloc (&nodeInput_C, numNodesSize);
-  cudaMemcpy(nodeInput_C, nodeInput_h, numNodesSize, cudaMemcpyHostToDevice);
+    int* nodeOutput_cuda = (int*)malloc(numNodesSize) ; 
+    cudaMalloc (&nodeOutput_cuda, numNodesSize);
+    cudaMemcpy(nodeOutput_cuda, nodeOutput_h, numNodesSize, cudaMemcpyHostToDevice);
 
-  int* nodeOutput_C = (int*)malloc(numNodesSize) ; 
-  cudaMalloc (&nodeOutput_C, numNodesSize);
-  cudaMemcpy(nodeOutput_C, nodeOutput_h, numNodesSize, cudaMemcpyHostToDevice);
+    int* nodeGate_cuda = (int*)malloc( numNodesSize) ; 
+    cudaMalloc (&nodeGate_cuda, numNodesSize);
+    cudaMemcpy(nodeGate_cuda, nodeGate_h, numNodesSize, cudaMemcpyHostToDevice);
 
-  int* nodeGate_C = (int*)malloc( numNodesSize) ; 
-  cudaMalloc (&nodeGate_C, numNodesSize);
-  cudaMemcpy(nodeGate_C, nodeGate_h, numNodesSize, cudaMemcpyHostToDevice);
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // step 4: time parallel execution
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    long long startTime = getNanos();
 
-  // Processing 
-  long long startTime = getNanos();
+    block_queuing_kernel<<<numBlocks, blockSize, queueSize*sizeof(int)>>>(numCurrLevelNodes, currLevelNodes_cuda, nodeNeighbors_cuda, nodePtrs_cuda, nodeVisited_cuda, nodeInput_cuda, nodeOutput_cuda, nodeGate_cuda, queueSize);
+    checkCudaErr(cudaDeviceSynchronize(), "Syncronization");
+    checkCudaErr(cudaGetLastError(), "GPU");
 
-  block_queuing_kernel <<< numBlocks, blockSize, queueSize*sizeof(int) >>> (numCurrLevelNodes, currLevelNodes_C, nodeNeighbors_C, nodePtrs_C, nodeVisited_C, nodeInput_C, nodeOutput_C, nodeGate_C, queueSize);
-  checkCudaErr(cudaDeviceSynchronize(), "Syncronization");
-  checkCudaErr(cudaGetLastError(), "GPU");
+    long long endTime = getNanos();
+    long long averageNanos = (endTime - startTime);
 
-  long long endTime = getNanos();
-	long long averageNanos = (endTime - startTime);
+    printf("Average ms: %.2f, blockSize: %d, numBlocks: %d, queueSize: %d \n", (double)averageNanos / 1000000, blockSize, numBlocks, queueSize);
 
-	printf("Average ms: %.2f, blockSize: %d, numBlocks: %d, queueSize: %d \n", (double)averageNanos / 1000000, blockSize, numBlocks, queueSize);
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // step 5: write to file and done!
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    int* outputBuffer;
+    outputBuffer = (int*) malloc(numNodesSize);
+    checkCudaErr(cudaMemcpy(outputBuffer, nodeOutput_cuda, numNodesSize, cudaMemcpyDeviceToHost), "Copying");
 
-  // Copy from device
-  int* outputBuffer;
-  outputBuffer = (int*) malloc(numNodesSize);
-  checkCudaErr(cudaMemcpy(outputBuffer, nodeOutput_C, numNodesSize, cudaMemcpyDeviceToHost), "Copying");
+    cudaMemcpyFromSymbol(&numNextLevelNodes_h, numNextLevelNodes, sizeof(int), 0, cudaMemcpyDeviceToHost);
+    checkCudaErr(cudaMemcpyFromSymbol(nextLevelNodes_h,globalNextLevelNodesQueue, numNextLevelNodes_h * sizeof(int), 0, cudaMemcpyDeviceToHost), "Copying");
 
-  cudaMemcpyFromSymbol(&numNextLevelNodes_h, numNextLevelNodes, sizeof(int), 0, cudaMemcpyDeviceToHost);
-  checkCudaErr(cudaMemcpyFromSymbol(nextLevelNodes_h,globalNextLevelNodesQueue, numNextLevelNodes_h * sizeof(int), 0, cudaMemcpyDeviceToHost), "Copying");
+    // write nodeOutput
+    FILE *nodeOutputFile = fopen(nodeOutputFilename, "w");
+    int counter = 0;
+    fprintf(nodeOutputFile,"%d\n",numNodes);
 
+    while (counter < numNodes) {
+        fprintf(nodeOutputFile,"%d\n",(outputBuffer[counter]));
+        counter++;
+    }
 
-  // Write output
-  FILE *nodeOutputFile = fopen(nodeOutput_fileName, "w");
-  int counter = 0;
-  fprintf(nodeOutputFile,"%d\n",numNodes);
+    fclose(nodeOutputFile);
 
-  while (counter < numNodes) {
-    fprintf(nodeOutputFile,"%d\n",(outputBuffer[counter]));
-    counter++;
-  }
+    // write nextLevelNodes
+    FILE *nextLevelOutputFile = fopen(nextLevelNodesFilename, "w");
+    counter = 0;
+    fprintf(nextLevelOutputFile,"%d\n",numNextLevelNodes_h);
 
-  fclose(nodeOutputFile);
+    while (counter < numNextLevelNodes_h) {
+        fprintf(nextLevelOutputFile,"%d\n",(nextLevelNodes_h[counter]));
+        counter++;
+    }
 
-  FILE *nextLevelOutputFile = fopen(nextLevelNodes_fileName, "w");
-  counter = 0;
-  fprintf(nextLevelOutputFile,"%d\n",numNextLevelNodes_h);
+    fclose(nextLevelOutputFile);
 
-  while (counter < numNextLevelNodes_h) {
-    fprintf(nextLevelOutputFile,"%d\n",(nextLevelNodes_h[counter]));
-    counter++;
-  }
+    // ~~~~~~~~~~~~~
+    // free at last!
+    // ~~~~~~~~~~~~~
 
-  fclose(nextLevelOutputFile);
-
-
-  // Free memory
-  free(outputBuffer);
-  free(nextLevelNodes_h);
-  cudaFree(nextLevelNodes_C);
-  cudaFree(currLevelNodes_C);
-  cudaFree(nodeNeighbors_C);
-  cudaFree(nodePtrs_C);
-  cudaFree(nodeVisited_C);
-  cudaFree(nodeInput_C);
-  cudaFree(nodeOutput_C);
-  cudaFree(nodeGate_C);
+    free(outputBuffer);
+    free(nextLevelNodes_h);
+    cudaFree(nextLevelNodes_cuda);
+    cudaFree(currLevelNodes_cuda);
+    cudaFree(nodeNeighbors_cuda);
+    cudaFree(nodePtrs_cuda);
+    cudaFree(nodeVisited_cuda);
+    cudaFree(nodeInput_cuda);
+    cudaFree(nodeOutput_cuda);
+    cudaFree(nodeGate_cuda);
 }
