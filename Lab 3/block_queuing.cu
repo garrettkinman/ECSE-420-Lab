@@ -20,10 +20,11 @@
 #define XNOR 5
 
 /*
-helper functions to read in inputs
+helper functions to read and write data
 */
 int read_input_one_two_four(int** input1, char* filepath);
 int read_input_three(int** input1, int** input2, int** input3, int** input4, char* filepath);
+void write_data(int* data, int length, char* filepath);
 
 __device__ int numNextLevelNodes = 0;
 __device__ int nextLevelNodesQueue[5000000];
@@ -221,29 +222,8 @@ int main(int argc, char *argv[]){
     cudaMemcpyFromSymbol(&numNextLevelNodes_h, numNextLevelNodes, sizeof(int), 0, cudaMemcpyDeviceToHost);
     cudaMemcpyFromSymbol(nextLevelNodes_h, nextLevelNodesQueue, numNextLevelNodes_h * sizeof(int), 0, cudaMemcpyDeviceToHost);
 
-    // write nodeOutput
-    FILE *nodeOutputFile = fopen(nodeOutputFilename, "w");
-    int counter = 0;
-    fprintf(nodeOutputFile,"%d\n",numNodes);
-
-    while (counter < numNodes) {
-        fprintf(nodeOutputFile,"%d\n",(outputBuffer[counter]));
-        counter++;
-    }
-
-    fclose(nodeOutputFile);
-
-    // write nextLevelNodes
-    FILE *nextLevelOutputFile = fopen(nextLevelNodesFilename, "w");
-    counter = 0;
-    fprintf(nextLevelOutputFile,"%d\n",numNextLevelNodes_h);
-
-    while (counter < numNextLevelNodes_h) {
-        fprintf(nextLevelOutputFile,"%d\n",(nextLevelNodes_h[counter]));
-        counter++;
-    }
-
-    fclose(nextLevelOutputFile);
+    write_data(outputBuffer, numNodes, nodeOutputFilename);
+    write_data(nextLevelNodes_h, numNextLevelNodes_h, nextLevelNodesFilename);
 
     // ~~~~~~~~~~~~~~~~~~~~~
     // step 6: free at last!
@@ -313,4 +293,15 @@ int read_input_three(int** input1, int** input2, int** input3, int** input4, cha
 
     fclose(fp);
     return len;
+}
+
+void write_data(int* data, int length, char* filepath) {
+    FILE* fp = fopen(filepath, "w");
+    fprintf(fp, "%d\n", length);
+
+    for (int i = 0; i < length; i++) {
+        fprintf(fp, "%d\n", (data[i]));
+    }
+
+    fclose(fp);
 }
