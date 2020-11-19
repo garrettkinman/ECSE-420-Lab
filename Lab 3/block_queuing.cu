@@ -244,7 +244,7 @@ int main(int argc, char *argv[]){
     cudaMalloc (&nodeOutput_cuda, numNodesSize);
     cudaMemcpy(nodeOutput_cuda, nodeOutput_h, numNodesSize, cudaMemcpyHostToDevice);
 
-    int* nodeGate_cuda = (int*)malloc( numNodesSize) ; 
+    int* nodeGate_cuda = (int*)malloc(numNodesSize) ; 
     cudaMalloc (&nodeGate_cuda, numNodesSize);
     cudaMemcpy(nodeGate_cuda, nodeGate_h, numNodesSize, cudaMemcpyHostToDevice);
 
@@ -252,23 +252,33 @@ int main(int argc, char *argv[]){
     // step 4: time parallel execution
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    long long startTime = getNanos();
+    cudaEvent_t startGPU, stopGPU;
+    cudaEventCreate(&startGPU);
+    cudaEventCreate(&stopGPU);
+
+    cudaEventRecord(startGPU);
 
     block_queuing_kernel<<<numBlocks, blockSize, queueSize*sizeof(int)>>>(numCurrLevelNodes, currLevelNodes_cuda, nodeNeighbors_cuda, nodePtrs_cuda, nodeVisited_cuda, nodeInput_cuda, nodeOutput_cuda, nodeGate_cuda, queueSize);
     checkCudaErr(cudaDeviceSynchronize(), "Syncronization");
     checkCudaErr(cudaGetLastError(), "GPU");
 
-    long long endTime = getNanos();
-    long long averageNanos = (endTime - startTime);
+    cudaEventRecord(stopGPU);
+    cudaEventSynchronize(stopGPU);
 
-    printf("Average ms: %.2f, blockSize: %d, numBlocks: %d, queueSize: %d \n", (double)averageNanos / 1000000, blockSize, numBlocks, queueSize);
+    float timeGPU;
+    cudaEventElapsedTime(&timeGPU, startGPU, stopGPU);
+
+    printf("Parallel Explicit: %.6f ms\n", timeGPU);
+
+    cudaEventDestroy(startGPU);
+    cudaEventDestroy(stopGPU);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // step 5: write to file and done!
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     int* outputBuffer;
-    outputBuffer = (int*) malloc(numNodesSize);
+    outputBuffer = (int*)malloc(numNodesSize);
     checkCudaErr(cudaMemcpy(outputBuffer, nodeOutput_cuda, numNodesSize, cudaMemcpyDeviceToHost), "Copying");
 
     cudaMemcpyFromSymbol(&numNextLevelNodes_h, numNextLevelNodes, sizeof(int), 0, cudaMemcpyDeviceToHost);
@@ -298,9 +308,9 @@ int main(int argc, char *argv[]){
 
     fclose(nextLevelOutputFile);
 
-    // ~~~~~~~~~~~~~
-    // free at last!
-    // ~~~~~~~~~~~~~
+    // ~~~~~~~~~~~~~~~~~~~~~
+    // step 6: free at last!
+    // ~~~~~~~~~~~~~~~~~~~~~
 
     free(outputBuffer);
     free(nextLevelNodes_h);
