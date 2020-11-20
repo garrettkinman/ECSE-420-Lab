@@ -205,7 +205,7 @@ int main(int argc, char *argv[]){
     float timeGPU;
     cudaEventElapsedTime(&timeGPU, startGPU, stopGPU);
 
-    printf("Parallel Explicit: %.6f ms\n", timeGPU);
+    printf("Block Queue: %.6f ms\n", timeGPU);
 
     cudaEventDestroy(startGPU);
     cudaEventDestroy(stopGPU);
