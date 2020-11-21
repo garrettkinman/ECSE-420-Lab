@@ -98,11 +98,9 @@ __device__ int globalQueue[7000000];
 __device__ int numNextLevelNodes = 0;
 
 __global__ void global_queuing_kernel(int totalThreads, int countNodes, int* nodePtrs, int* currLevelNodes, int* nodeNeighbors, int* nodeVisited, int* nodeGate, int* nodeInput, int* nodeOutput) {
-    
     int nodesPerThread = countNodes / totalThreads;
     int threadIndex = threadIdx.x + (blockDim.x * blockIdx.x);
     int beginIdx = threadIndex * nodesPerThread;
-    
     //Loop over all nodes in the current level
     for (int id = beginIdx; id < countNodes && id < beginIdx + nodesPerThread; id++) {
         int nodeIdx = currLevelNodes[id];
@@ -112,9 +110,7 @@ __global__ void global_queuing_kernel(int totalThreads, int countNodes, int* nod
             //If the neighbor hasn’t been visited yet
             const int visited = atomicExch(&(nodeVisited[neighborIdx]),1);
             if (!visited) {
-                
                 nodeOutput[neighborIdx] = gate_solver(nodeGate[neighborIdx], nodeOutput[nodeIdx], nodeInput[neighborIdx]);
-                
                 //Add it to the global queue
                 const int globalQueueIdx = atomicAdd(&numNextLevelNodes,1); 
                 globalQueue[globalQueueIdx] = neighborIdx; 

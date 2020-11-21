@@ -49,18 +49,15 @@ __device__ int gate_solver(int gate, int x1, int x2) {
 }
 
 __global__ void block_queuing_kernel(int numCurrLevelNodes, int* currLevelNodes, int* nodeNeighbors, int* nodePtrs, int* nodeVisited, int* nodeInput, int* nodeOutput, int* nodeGate, int queueSize){
-    
     // initialize shared memory queue
     extern __shared__ int sharedBlockQueue[];
     __shared__ int sharedBlockQueueSize, blockGlobalQueueIdx;
-
+   
     if (threadIdx.x == 0)
         sharedBlockQueueSize = 0; 
-
+    
     __syncthreads();
-
     int threadIndex = threadIdx.x + (blockDim.x * blockIdx.x);
-
     // Loop over all nodes in the current level
     for (int id = threadIndex; id < numCurrLevelNodes; id++) {
         int nodeIdx = currLevelNodes[id];      
