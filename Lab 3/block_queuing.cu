@@ -61,13 +61,13 @@ __global__ void block_queuing_kernel(int numCurrLevelNodes, int* currLevelNodes,
 
     int threadIndex = threadIdx.x + (blockDim.x * blockIdx.x);
 
-    // Iterate through each node in current level
+    // Loop over all nodes in the current level
     for (int id = threadIndex; id < numCurrLevelNodes; id++) {
         int nodeIdx = currLevelNodes[id];      
-        // Iterate through each neighbor of the node
+        //Loop over all neighbors of the node
         for (int nId = nodePtrs[nodeIdx]; nId < nodePtrs[nodeIdx+1]; nId++) {          
             int neighborIdx = nodeNeighbors[nId];
-            // If the neighbor is not visited
+            // If the neighbor hasn’t been visited yet
             const int visited = atomicExch(&(nodeVisited[neighborIdx]), 1);
             if (!(visited)) {
                 const int queueIdx = atomicAdd(&sharedBlockQueueSize, 1);
